@@ -830,6 +830,17 @@ static int dtls_get_reassembled_message(SSL *s, int *errtype, size_t *len)
 	    s->statem.dont_send = 1;
     }
 
+    if (msg_hdr.seq == 0 &&
+	s->d1->handshake_read_seq == 1 &&
+	s->statem.hand_state == DTLS_ST_SW_HELLO_VERIFY_REQUEST &&
+	wire[0] == SSL3_MT_CLIENT_HELLO) {
+	    printf("special case for handling Client Hello retransmit %d %d\n",
+		   (int) wire[0], (int) s->statem.hand_state);
+	    s->d1->handshake_read_seq = 0;
+            s->d1->handshake_write_seq = 0;
+            s->d1->next_handshake_write_seq = 0;
+	    s->statem.hand_state = TLS_ST_BEFORE;
+    } else
     if (msg_hdr.seq != s->d1->handshake_read_seq) {
         *errtype = dtls1_process_out_of_seq_message(s, &msg_hdr);
         return 0;
