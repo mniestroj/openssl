@@ -118,6 +118,8 @@ struct ossl_statem_st {
     int use_timer;
     ENC_WRITE_STATES enc_write_state;
     ENC_READ_STATES enc_read_state;
+
+    int dont_send;
 };
 typedef struct ossl_statem_st OSSL_STATEM;
 

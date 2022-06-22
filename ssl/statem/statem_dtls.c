@@ -117,6 +117,12 @@ int dtls1_do_write(SSL *s, int type)
     int retry = 1;
     size_t len, frag_off, mac_size, blocksize, used_len;
 
+    if (s->statem.dont_send) {
+	    printf("Don't send this message!\n");
+	    s->statem.dont_send = 0;
+	    return 1;
+    }
+
     if (!dtls1_query_mtu(s))
         return -1;
 
@@ -812,6 +818,18 @@ static int dtls_get_reassembled_message(SSL *s, int *errtype, size_t *len)
      * While listening, we accept seq 1 (ClientHello with cookie)
      * although we're still expecting seq 0 (ClientHello)
      */
+    printf("comparing msg_hdr.seq %d s->d1->handshake_read_seq %d (s->statem.hand_state %d)\n",
+	   (int) msg_hdr.seq,
+	   (int) s->d1->handshake_read_seq,
+	   (int) s->statem.hand_state);
+
+    if (msg_hdr.seq == 0 &&
+	s->d1->handshake_read_seq == 0 &&
+	s->statem.hand_state != DTLS_ST_SW_HELLO_VERIFY_REQUEST &&
+	wire[0] == SSL3_MT_CLIENT_HELLO) {
+	    s->statem.dont_send = 1;
+    }
+
     if (msg_hdr.seq != s->d1->handshake_read_seq) {
         *errtype = dtls1_process_out_of_seq_message(s, &msg_hdr);
         return 0;
